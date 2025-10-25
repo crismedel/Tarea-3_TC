@@ -9,10 +9,9 @@ def tokenize(code):
     Analizador Léxico para el subconjunto de FORTRAN77.
     """
     # Especificación de tokens (expresiones regulares)
-    # IMPORTANTE: Las palabras clave (keywords) deben ir ANTES que el ID.
     token_specification = [
         # --- Comentario de FORTRAN 77 (C, c, o * en la columna 1) ---
-        ('COMMENT',  r'^[C\*].*'), # El ancla ^ marca el inicio de una línea
+        ('COMMENT',  r'^[C\*].*'), 
         
         # --- Palabras clave de FORTRAN77 ---
         ('IF',       r'IF'),
@@ -21,33 +20,35 @@ def tokenize(code):
         ('ENDIF',    r'ENDIF'),
         
         # --- Operadores Relacionales ---
-        # (FORTRAN77 usa .GT., .LT., .EQ.)
         ('GT',       r'\.GT\.'),
         ('LT',       r'\.LT\.'),
         ('EQ',       r'\.EQ\.'),
         
         # --- Gramática original ---
-        ('NUMBER',   r'\d+'),           # Un número
-        ('ASSIGN',   r'='),             # Símbolo de asignación
-        ('PLUS',     r'\+'),            # Operador de suma
-        ('MULTIPLY', r'\*'),            # Operador de multiplicación
-        ('LPAREN',   r'\('),            # Paréntesis izquierdo
-        ('RPAREN',   r'\)'),            # Paréntesis derecho
-        ('ID',       r'[A-Z][A-Z0-9]*'), # Identificadores (DEBE IR DESPUÉS DE KEYWORDS)
-        ('SKIP',     r'[ \t]+'),        # Ignorar espacios y tabs
-        ('NEWLINE',  r'\n'),           # Para contar líneas (simplificado, FORTRAN real es más complejo)
-        ('MISMATCH', r'.'),             # Cualquier otro caracter (error)
+        ('NUMBER',   r'\d+'),           
+        ('ASSIGN',   r'='),             
+        ('PLUS',     r'\+'),            
+        ('MULTIPLY', r'\*'),            
+        ('LPAREN',   r'\('),            
+        ('RPAREN',   r'\)'),            
+        ('ID',       r'[A-Z][A-Z0-9]*'), 
+        ('SKIP',     r'[ \t]+'),        
+        ('NEWLINE',  r'\n'),           
+        ('MISMATCH', r'.'),             
     ]
     
-    # Compilar las expresiones regulares
-    tok_regex = re.compile('|'.join('(?P<%s>%s)' % pair for pair in token_specification), re.MULTILINE)
+    # --- ESTA LÍNEA ES LA SIMPLIFICADA ---
+    # Compila las expresiones regulares usando una list comprehension
+    tok_regex = re.compile(
+        '|'.join(f'(?P<{pair[0]}>{pair[1]})' for pair in token_specification), 
+        re.MULTILINE
+    )
     
     line_num = 1
     line_start = 0
-    tokens = [] # Lista de tokens generados
+    tokens = [] 
 
     # Analizar el código (convertimos a mayúsculas)
-    # Usamos .upper() porque FORTRAN77 es case-insensitive
     for mo in tok_regex.finditer(code.upper()):
         kind = mo.lastgroup
         value = mo.group()
@@ -62,14 +63,12 @@ def tokenize(code):
             line_start = mo.end()
             line_num += 1
         elif kind == 'SKIP':
-            pass # Ignorar espacios
-        elif kind == 'COMMENT': # <--- AÑADIR ESTE ELIF
-            pass # Ignorar la línea de comentario
+            pass 
+        elif kind == 'COMMENT': 
+            pass 
         elif kind == 'MISMATCH':
-            # Requisito: Detección de errores léxicos
             raise RuntimeError(f'Error Léxico: Caracter inesperado {value!r} '
                                f'en línea {line_num}, columna {column}')
 
-    # Añadir el token especial de fin de entrada
     tokens.append(Token('END_OF_INPUT', '$', line_num, 0))
     return tokens
